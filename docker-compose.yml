@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  telegram-monitor:
+    build: .
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_API_ID=${TELEGRAM_API_ID}
+      - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - ./sesion_monitor.session:/app/sesion_monitor.session
+      - ./config.json:/app/config.json
