@@ -1,77 +1,77 @@
 # Telegram Monitor Bot
 
-Un "Userbot" de Telegram diseñado para escuchar canales específicos en tiempo real, buscar palabras clave definidas por el usuario, y enviarte una notificación Push a tu teléfono a través de un Bot de Telegram Oficial. Todo ello gestionado de forma interactiva y preparado para ser desplegado mediante Docker (ej. en un servidor TrueNAS, Raspberry Pi, VPS, etc.).
+A Telegram "Userbot" designed to listen to specific channels in real-time, search for user-defined keywords, and send you a Push notification to your phone via an Official Telegram Bot. All managed interactively and ready to be deployed using Docker (e.g., on a TrueNAS server, Raspberry Pi, VPS, etc.).
 
-## Características
+## Features
 
-- **Monitorización Silenciosa:** Utiliza tu cuenta de Telegram (Userbot) para escuchar canales de los que eres miembro, sin necesidad de ser administrador.
-- **Notificaciones Push:** Utiliza la API de Bots Oficiales de Telegram para enviarte las alertas, asegurando que recibas una notificación con sonido en tu teléfono móvil.
-- **Configuración Interactiva:** No hace falta tocar el código ni reiniciar el servidor. Controla el bot directamente desde tus **Mensajes Guardados (Saved Messages)** en Telegram usando comandos.
-- **Protección Antispam:** Evita saturar tu teléfono limitando las notificaciones (por defecto, máximo 3 alertas por minuto).
-- **Despliegue Sencillo:** Incluye `Dockerfile` y `docker-compose.yml` para un despliegue rápido y seguro.
+- **Silent Monitoring:** Uses your Telegram account (Userbot) to listen to channels you are a member of, without needing to be an administrator.
+- **Push Notifications:** Uses the Official Telegram Bots API to send you alerts, ensuring you receive a notification with sound on your mobile phone.
+- **Interactive Configuration:** No need to touch the code or restart the server. Control the bot directly from your **Saved Messages** in Telegram using commands.
+- **Anti-spam Protection:** Avoids saturating your phone by limiting notifications (by default, maximum 3 alerts per minute).
+- **Simple Deployment:** Includes `Dockerfile` and `docker-compose.yml` for quick and secure deployment.
 
-## Prerrequisitos
+## Prerequisites
 
-Necesitarás obtener tres claves de Telegram antes de empezar:
+You will need to obtain three Telegram keys before starting:
 
-1. **`TELEGRAM_API_ID`** y **`TELEGRAM_API_HASH`**:
-   - Ve a [my.telegram.org](https://my.telegram.org) e inicia sesión con tu número de teléfono.
-   - Ve a **API development tools**.
-   - Crea una nueva aplicación (puedes inventarte el nombre) y copia el `api_id` y `api_hash`.
+1. **`TELEGRAM_API_ID`** and **`TELEGRAM_API_HASH`**:
+   - Go to [my.telegram.org](https://my.telegram.org) and log in with your phone number.
+   - Go to **API development tools**.
+   - Create a new application (you can make up the name) and copy the `api_id` and `api_hash`.
 2. **`TELEGRAM_BOT_TOKEN`**:
-   - Abre Telegram y busca a **@BotFather**.
-   - Envíale el comando `/newbot` y sigue los pasos.
-   - Copia el token que te proporciona al final (ej. `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`).
-   - **Importante:** Inicia un chat con tu nuevo bot (dale a "Start" o envíale `/start`) para que este tenga permiso de enviarte mensajes.
+   - Open Telegram and search for **@BotFather**.
+   - Send the `/newbot` command and follow the steps.
+   - Copy the token provided at the end (e.g. `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`).
+   - **Important:** Start a chat with your new bot (click "Start" or send `/start`) so it has permission to send you messages.
 
-## Instalación y Uso Local
+## Local Installation and Usage
 
-Es **obligatorio** ejecutar el bot localmente la primera vez para poder iniciar sesión con tu cuenta de Telegram y generar el archivo de sesión (`sesion_monitor.session`).
+It is **mandatory** to run the bot locally the first time to log in with your Telegram account and generate the session file (`sesion_monitor.session`).
 
-1. **Clona o descarga este repositorio.**
-2. **Prepara las variables de entorno:**
-   - Crea un archivo llamado `.env` en la raíz del proyecto.
-   - Añade tus credenciales:
+1. **Clone or download this repository.**
+2. **Prepare environment variables:**
+   - Create a file named `.env` in the root of the project.
+   - Add your credentials:
      ```env
-     TELEGRAM_API_ID=tu_api_id
-     TELEGRAM_API_HASH=tu_api_hash
-     TELEGRAM_BOT_TOKEN=tu_bot_token
+     TELEGRAM_API_ID=your_api_id
+     TELEGRAM_API_HASH=your_api_hash
+     TELEGRAM_BOT_TOKEN=your_bot_token
      ```
-3. **Prepara el archivo de configuración:**
-   - Copia o renombra `config.json.example` a `config.json`.
-4. **Instala las dependencias:**
+3. **Prepare the configuration file:**
+   - Copy or rename `config.json.example` to `config.json`.
+4. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
-5. **Ejecuta el bot:**
+5. **Run the bot:**
    ```bash
    python3 main_cli.py
    ```
-   *La consola te pedirá tu número de teléfono y el código de inicio de sesión que te llegará por Telegram. Una vez introducido, se generará el archivo `sesion_monitor.session`.*
+   *The console will ask for your phone number and the login code you will receive via Telegram. Once entered, the `sesion_monitor.session` file will be generated.*
 
-## Despliegue con Docker
+## Docker Deployment
 
-Una vez que tengas tu archivo `.env`, tu `config.json` y hayas generado el archivo `sesion_monitor.session` (paso vital), puedes desplegarlo fácilmente:
+Once you have your `.env` file, your `config.json`, and have generated the `sesion_monitor.session` file (vital step), you can easily deploy it:
 
 ```bash
 docker-compose up -d
 ```
 
-## Comandos Interactivos
+## Interactive Commands
 
-Para gestionar el bot, ve al chat de **Mensajes Guardados (Saved Messages)** de tu propia cuenta de Telegram. Puedes usar los siguientes comandos:
+To manage the bot, go to the **Saved Messages** chat of your own Telegram account. You can use the following commands:
 
-- `/start` - Inicia/reanuda la monitorización.
-- `/stop` - Pausa la monitorización.
-- `/status` - Muestra si el bot está activo y la lista actual de canales y palabras clave.
-- `/add_kw <palabra>` - Añade una nueva palabra clave.
-- `/rm_kw <palabra>` - Elimina una palabra clave.
-- `/add_ch <canal>` - Añade un canal (puedes usar el ID numérico como `-1001234567890` o el usuario como `@nombre_canal`).
-- `/rm_ch <canal>` - Elimina un canal.
-- `/lang <en|es>` - Cambia el idioma de los mensajes del bot a Inglés (`en`) o Español (`es`).
+- `/start` - Starts/resumes monitoring.
+- `/stop` - Pauses monitoring.
+- `/status` - Shows if the bot is active and the current list of channels and keywords.
+- `/add_kw <keyword>` - Adds a new keyword.
+- `/rm_kw <keyword>` - Removes a keyword.
+- `/add_ch <channel>` - Adds a channel (you can use the numeric ID like `-1001234567890` or the username like `@channel_name`).
+- `/rm_ch <channel>` - Removes a channel.
+- `/lang <en|es>` - Changes the bot's message language to English (`en`) or Spanish (`es`).
 
-Toda la configuración se guarda automáticamente en `config.json` y persistirá tras los reinicios.
+All configuration is automatically saved in `config.json` and will persist across restarts.
 
-## Privacidad y Git
+## Privacy and Git
 
-El archivo `.gitignore` ya está configurado para evitar que subas credenciales por accidente. Archivos como `.env`, `config.json`, y los archivos de sesión `*.session` serán ignorados por Git.
+The `.gitignore` file is already configured to prevent you from accidentally uploading credentials. Files like `.env`, `config.json`, and session files `*.session` will be ignored by Git.

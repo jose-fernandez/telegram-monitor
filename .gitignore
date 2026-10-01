@@ -1,16 +1,16 @@
-# Entornos virtuales
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Variables de entorno
+# Environment variables
 .env
 config.json
 
-# Archivos de sesión de Telethon
+# Telethon session files
 *.session
 *.session-journal
 
-# Caché de Python
+# Python cache
 __pycache__/
 *.py[cod]
