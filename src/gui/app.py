@@ -548,11 +548,20 @@ class DashboardFrame(ctk.CTkFrame):
         new_ch = self.app.t('dash_tab_ch')
         
         try:
+            current_tab = self.tabview.get()
             self.tabview.rename(self.name_status, new_status)
+            if current_tab == self.name_status:
+                self.tabview.set(new_status)
             self.name_status = new_status
+            
             self.tabview.rename(self.name_kw, new_kw)
+            if current_tab == self.name_kw:
+                self.tabview.set(new_kw)
             self.name_kw = new_kw
+            
             self.tabview.rename(self.name_ch, new_ch)
+            if current_tab == self.name_ch:
+                self.tabview.set(new_ch)
             self.name_ch = new_ch
         except Exception:
             pass # Failsafe if tabs changed
