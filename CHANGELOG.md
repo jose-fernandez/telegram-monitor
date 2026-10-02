@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/jose-fernandez/telegram-monitor/compare/telegram-monitor-v1.0.0...telegram-monitor-v1.1.0) (2026-10-02)
+
+
+### Features
+
+* let users choose the time zone of the logs with TZ ([cf42891](https://github.com/jose-fernandez/telegram-monitor/commit/cf428914c99d6b2f05feaa74a2bc20dd7178330c))
+* let users choose the time zone of the logs with TZ ([c73fe90](https://github.com/jose-fernandez/telegram-monitor/commit/c73fe90df58101ad904a0f7507ba905cda5b0c26))
+
 ## 1.0.0 (2026-10-02)
 
 
