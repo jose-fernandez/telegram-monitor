@@ -6,6 +6,7 @@ env/
 # Environment variables
 .env
 config.json
+data/
 
 # Telethon session files
 *.session

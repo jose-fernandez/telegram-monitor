@@ -7,6 +7,18 @@ logger = logging.getLogger(__name__)
 
 CONFIG_FILE = 'config.json'
 ENV_FILE = '.env'
+SESSION_NAME = 'sesion_monitor'
+
+def data_dir():
+    # Where config.json and the session file live. Defaults to the working
+    # directory; Docker points it at a mounted volume.
+    return os.environ.get('MONITOR_DATA_DIR', '.')
+
+def config_path():
+    return os.path.join(data_dir(), CONFIG_FILE)
+
+def session_path():
+    return os.path.join(data_dir(), SESSION_NAME)
 
 def load_env():
     load_dotenv(ENV_FILE)
@@ -22,9 +34,9 @@ def save_env(api_id, api_hash, bot_token):
         f.write(f"TELEGRAM_BOT_TOKEN={bot_token}\n")
 
 def load_config():
-    if os.path.exists(CONFIG_FILE):
+    if os.path.exists(config_path()):
         try:
-            with open(CONFIG_FILE, 'r') as f:
+            with open(config_path(), 'r') as f:
                 config = json.load(f)
                 if 'language' not in config:
                     config['language'] = 'en'
@@ -40,7 +52,7 @@ def load_config():
 
 def save_config(config):
     try:
-        with open(CONFIG_FILE, 'w') as f:
+        with open(config_path(), 'w') as f:
             json.dump(config, f, indent=4)
     except Exception as e:
         logger.error(f"Error saving config.json: {e}")

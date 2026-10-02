@@ -1,17 +1,20 @@
 import asyncio
+import html
 import logging
 from collections import deque
 import time
 import aiohttp
 from telethon import TelegramClient, events
 
-from src.utils.config import load_config, save_config, load_env
+from src.utils.config import load_config, save_config, load_env, session_path
 from src.utils.i18n import get_translation as t_func
 
 logger = logging.getLogger(__name__)
 
 class TelegramMonitorBot:
-    def __init__(self, session_name='sesion_monitor'):
+    def __init__(self, session_name=None):
+        if session_name is None:
+            session_name = session_path()
         self.api_id, self.api_hash, self.bot_token = load_env()
         if not self.api_id or not self.api_hash:
             raise ValueError("API credentials missing in .env")
@@ -29,6 +32,11 @@ class TelegramMonitorBot:
         lang = self.state.get('language', 'en')
         return t_func(lang, key, **kwargs)
 
+    def build_alert(self, chat_title, text):
+        # Channel text is arbitrary; escape it so a stray '<' or '&' cannot make
+        # the Bot API reject the alert.
+        return self.t('alert', chat_title=html.escape(chat_title), text=html.escape(text))
+
     async def send_bot_alert(self, message):
         if not self.bot_token or not self.my_user_id:
             logger.error("Cannot send bot alert: missing BOT_TOKEN or MY_USER_ID")
@@ -38,7 +46,7 @@ class TelegramMonitorBot:
         payload = {
             "chat_id": self.my_user_id,
             "text": message,
-            "parse_mode": "Markdown"
+            "parse_mode": "HTML"
         }
         try:
             async with aiohttp.ClientSession() as session:
@@ -189,7 +197,7 @@ class TelegramMonitorBot:
                         if chat_username:
                             chat_title = f"@{chat_username}"
                         
-                        message = self.t('alert', chat_title=chat_title, text=event.raw_text)
+                        message = self.build_alert(chat_title, event.raw_text)
                         await self.send_bot_alert(message)
                         logger.info(f"Alert sent for channel {chat_title}")
                     except Exception as e:

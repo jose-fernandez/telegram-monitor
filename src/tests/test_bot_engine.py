@@ -1,15 +1,20 @@
+import os
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from src.core.bot_engine import TelegramMonitorBot
 
 @pytest.fixture
-def mock_telethon(monkeypatch):
+def mock_telethon(monkeypatch, tmp_path):
     # Mock TelegramClient class
     client_mock = MagicMock()
-    monkeypatch.setattr("src.core.bot_engine.TelegramClient", MagicMock(return_value=client_mock))
-    monkeypatch.setenv("API_ID", "123")
-    monkeypatch.setenv("API_HASH", "abc")
-    monkeypatch.setenv("BOT_TOKEN", "test_token")
+    client_class = MagicMock(return_value=client_mock)
+    monkeypatch.setattr("src.core.bot_engine.TelegramClient", client_class)
+    # Run from an empty directory so a developer's real config.json is never read
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("TELEGRAM_API_ID", "123")
+    monkeypatch.setenv("TELEGRAM_API_HASH", "abc")
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test_token")
+    return client_class
 
 @pytest.mark.asyncio
 async def test_bot_send_alert(mock_telethon):
@@ -27,3 +32,31 @@ async def test_bot_send_alert(mock_telethon):
         args, kwargs = mock_post.call_args
         assert kwargs['json']['text'] == "Test alert message"
         assert kwargs['json']['chat_id'] == 12345
+        assert kwargs['json']['parse_mode'] == "HTML"
+
+def test_build_alert_escapes_channel_text(mock_telethon):
+    bot = TelegramMonitorBot()
+    bot.state['language'] = 'en'
+
+    message = bot.build_alert("@deals<&>", "50% off <b>today</b> & *now* _only_ [link")
+
+    assert message == (
+        "🚨 <b>Alert in @deals&lt;&amp;&gt;</b>\n\n"
+        "50% off &lt;b&gt;today&lt;/b&gt; &amp; *now* _only_ [link"
+    )
+
+def test_session_defaults_to_working_directory(mock_telethon):
+    TelegramMonitorBot()
+
+    session = mock_telethon.call_args.args[0]
+    assert session == os.path.join(".", "sesion_monitor")
+
+def test_session_lives_in_data_dir(mock_telethon, monkeypatch, tmp_path):
+    data = tmp_path / "data"
+    data.mkdir()
+    monkeypatch.setenv("MONITOR_DATA_DIR", str(data))
+
+    TelegramMonitorBot()
+
+    session = mock_telethon.call_args.args[0]
+    assert session == os.path.join(str(data), "sesion_monitor")
