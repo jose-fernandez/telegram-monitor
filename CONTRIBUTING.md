@@ -38,4 +38,4 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 - `feat!: …`, or a `BREAKING CHANGE:` footer — a change that breaks existing setups (renamed files, removed commands, new required settings) → major release (1.0.0 → 2.0.0)
 - `docs:`, `test:`, `ci:`, `chore:`, `refactor:` — no release on their own
 
-[release-please](https://github.com/googleapis/release-please) keeps a release pull request open that collects these changes and updates `CHANGELOG.md` and `version.txt`. **Merging that pull request is what publishes a release**: it creates the `vX.Y.Z` tag and the GitHub release, and the CI pushes the Docker image as `X.Y.Z`, `X.Y` and `X` alongside `latest`. Nothing is released until it is merged.
+[release-please](https://github.com/googleapis/release-please) keeps a release pull request open that collects these changes, updates `CHANGELOG.md`, and records the version in `.release-please-manifest.json`. **Merging that pull request is what publishes a release**: it creates the `vX.Y.Z` tag and the GitHub release, and the CI pushes the Docker image as `X.Y.Z`, `X.Y` and `X` alongside `latest`. Nothing is released until it is merged.
