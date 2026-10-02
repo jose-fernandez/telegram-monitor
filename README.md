@@ -8,6 +8,7 @@ A Telegram "Userbot" designed to listen to specific channels in real-time, searc
 - **Push Notifications:** Uses the Official Telegram Bots API to send you alerts, ensuring you receive a notification with sound on your mobile phone.
 - **Interactive Configuration:** No need to touch the code or restart the server. Control the bot directly from your **Saved Messages** in Telegram using commands.
 - **Anti-spam Protection:** Avoids saturating your phone by limiting notifications (by default, maximum 3 alerts per minute).
+- **No Lost Alerts:** Alerts over that limit wait their turn instead of being dropped, long posts are split across several messages, and temporary Telegram or network failures are retried until the alert arrives.
 - **Simple Deployment:** Includes `Dockerfile` and `docker-compose.yml` for quick and secure deployment.
 
 ## Prerequisites
