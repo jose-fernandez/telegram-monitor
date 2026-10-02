@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+# Runs on main queue up in push order instead of overlapping, so :latest is
+# always written by the newest commit. Never cancel: every push to main may
+# carry a release.
+concurrency:
+  group: ${{ github.event_name == 'push' && 'main' || format('pr-{0}', github.ref) }}
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,6 +33,7 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       version: ${{ steps.release.outputs.version }}
+      sha: ${{ steps.release.outputs.sha }}
     steps:
       # Opens or updates the release PR; merging that PR creates the tag and
       # the GitHub release. Config: release-please-config.json
@@ -33,8 +41,7 @@ jobs:
         id: release
 
   image:
-    # Built here rather than on a tag push: a tag created with GITHUB_TOKEN
-    # does not trigger other workflows.
+    # :latest and :sha-<commit>, built from the commit this run is for.
     needs: release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -55,9 +62,44 @@ jobs:
           tags: |
             type=raw,value=latest
             type=sha
-            type=semver,pattern={{version}},value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
-            type=semver,pattern={{major}},value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  release-image:
+    # :X.Y.Z, :X.Y and :X, built from the commit the release tag points at.
+    # Built here rather than on a tag push, because a tag created with
+    # GITHUB_TOKEN triggers no other workflow. Checking out the tag matters:
+    # release-please reads the live branch, so the run that publishes a release
+    # can be one whose own commit predates the release commit.
+    needs: release
+    if: needs.release.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.sha }}
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.release.outputs.version }}
+          labels: |
+            org.opencontainers.image.revision=${{ needs.release.outputs.sha }}
       - uses: docker/build-push-action@v6
         with:
           context: .
