@@ -6,7 +6,7 @@ import webbrowser
 import re
 from telethon import TelegramClient
 
-from src.utils.config import load_env, save_env, load_config, save_config
+from src.utils.config import load_env, save_env, load_config, save_config, session_path
 from src.utils.i18n import get_translation as t_func
 
 ctk.set_appearance_mode("Dark")
@@ -303,7 +303,7 @@ class ApiSetupFrame(ctk.CTkFrame):
         from telethon import TelegramClient
         try:
             if not self.app.client or not self.app.client.is_connected():
-                self.app.client = TelegramClient('sesion_monitor', int(aid), ahash)
+                self.app.client = TelegramClient(session_path(), int(aid), ahash)
                 await self.app.client.connect()
             
             is_auth = await self.app.client.is_user_authorized()
@@ -384,7 +384,7 @@ class PhoneSetupFrame(ctk.CTkFrame):
 
     async def do_request_code(self, phone):
         aid, ahash, _ = load_env()
-        self.app.client = TelegramClient('sesion_monitor', int(aid), ahash)
+        self.app.client = TelegramClient(session_path(), int(aid), ahash)
         await self.app.client.connect()
         
         if await self.app.client.is_user_authorized():
@@ -707,7 +707,7 @@ class DashboardFrame(ctk.CTkFrame):
                 from src.utils.config import load_env
                 aid, ahash, _ = load_env()
                 from telethon import TelegramClient
-                self.app.client = TelegramClient('sesion_monitor', int(aid), ahash)
+                self.app.client = TelegramClient(session_path(), int(aid), ahash)
                 await self.app.client.connect()
             
             await self.app.client.log_out()
