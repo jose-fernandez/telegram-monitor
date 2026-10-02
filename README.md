@@ -147,6 +147,7 @@ The server runs the same bot using the login from Step 2. Everything it needs li
        ├── sesion_monitor.session
        └── config.json
    ```
+   *Optional:* to see the logs in your local time instead of UTC, add your time zone to `.env`, e.g. `TZ=America/New_York` or `TZ=Asia/Kolkata` ([list of names](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)).
 4. **Stop the bot on your computer.** One login should not run in two places at once.
 5. Start it on the server:
    ```bash
