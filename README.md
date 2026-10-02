@@ -161,7 +161,15 @@ Useful commands, run from that folder:
 | Update to the latest version | `docker compose pull && docker compose up -d` |
 | Stop it | `docker compose down` |
 
-The ready-made image is `ghcr.io/jose-fernandez/telegram-monitor:latest`, rebuilt on every change to `main`. `docker compose up -d --build` builds it from the source instead. Inside the container the data folder is `/app/data`, set by the `MONITOR_DATA_DIR` variable. Outside Docker, `MONITOR_DATA_DIR` also works and defaults to the current folder.
+The ready-made image is `ghcr.io/jose-fernandez/telegram-monitor`. Choose how it updates by its tag, in the `image:` line of `docker-compose.yml`:
+
+| Tag | What you get |
+|-----|--------------|
+| `:latest` | The newest code on `main`, including changes not yet released |
+| `:1` | The newest **1.x** release. Recommended: you get fixes and new features, never a change that breaks your setup |
+| `:1.2.0` | Exactly that version, never updated. Change the number to upgrade, or to go back if something breaks |
+
+What changed in each version is in [CHANGELOG.md](CHANGELOG.md) and on the [Releases](https://github.com/jose-fernandez/telegram-monitor/releases) page. `docker compose up -d --build` builds it from the source instead. Inside the container the data folder is `/app/data`, set by the `MONITOR_DATA_DIR` variable. Outside Docker, `MONITOR_DATA_DIR` also works and defaults to the current folder.
 
 ## Troubleshooting
 

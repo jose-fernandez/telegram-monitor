@@ -16,8 +16,26 @@ jobs:
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: pytest -q
 
-  image:
+  release:
     needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      # Opens or updates the release PR; merging that PR creates the tag and
+      # the GitHub release. Config: release-please-config.json
+      - uses: googleapis/release-please-action@v5
+        id: release
+
+  image:
+    # Built here rather than on a tag push: a tag created with GITHUB_TOKEN
+    # does not trigger other workflows.
+    needs: release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -37,6 +55,9 @@ jobs:
           tags: |
             type=raw,value=latest
             type=sha
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
+            type=semver,pattern={{major}},value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
       - uses: docker/build-push-action@v6
         with:
           context: .

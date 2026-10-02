@@ -28,3 +28,14 @@ Welcome! We've designed this project to be highly modular and easy to contribute
 - **New Bot Commands**: Add them in `src/core/bot_engine.py` under the `setup_handlers` method.
 - **New Languages**: Add your translations to the `TRANSLATIONS` dictionary in `src/utils/i18n.py`.
 - **UI Enhancements**: Modify `src/gui/app.py`. Try to keep the UI simple, modern, and accessible for non-technical users.
+
+## Commits and Releases
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/), because releases are generated from them:
+
+- `fix: …` — a bug fix → patch release (1.0.0 → 1.0.1)
+- `feat: …` — a new feature → minor release (1.0.0 → 1.1.0)
+- `feat!: …`, or a `BREAKING CHANGE:` footer — a change that breaks existing setups (renamed files, removed commands, new required settings) → major release (1.0.0 → 2.0.0)
+- `docs:`, `test:`, `ci:`, `chore:`, `refactor:` — no release on their own
+
+[release-please](https://github.com/googleapis/release-please) keeps a release pull request open that collects these changes and updates `CHANGELOG.md` and `version.txt`. **Merging that pull request is what publishes a release**: it creates the `vX.Y.Z` tag and the GitHub release, and the CI pushes the Docker image as `X.Y.Z`, `X.Y` and `X` alongside `latest`. Nothing is released until it is merged.

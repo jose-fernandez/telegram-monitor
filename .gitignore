@@ -15,3 +15,6 @@ data/
 # Python cache
 __pycache__/
 *.py[cod]
+
+# Windows download metadata (copied in from NTFS)
+*:Zone.Identifier
