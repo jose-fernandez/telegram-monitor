@@ -1,7 +1,6 @@
-version: '3.8'
-
 services:
   telegram-monitor:
+    image: ghcr.io/jose-fernandez/telegram-monitor:latest
     build: .
     restart: unless-stopped
     environment:
@@ -9,5 +8,5 @@ services:
       - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
     volumes:
-      - ./sesion_monitor.session:/app/sesion_monitor.session
-      - ./config.json:/app/config.json
+      # Holds sesion_monitor.session and config.json
+      - ./data:/app/data

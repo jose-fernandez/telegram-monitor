@@ -1,17 +1,42 @@
 import asyncio
+import html
+import json
 import logging
 from collections import deque
 import time
 import aiohttp
 from telethon import TelegramClient, events
 
-from src.utils.config import load_config, save_config, load_env
+from src.utils.config import load_config, save_config, load_env, session_path
 from src.utils.i18n import get_translation as t_func
 
 logger = logging.getLogger(__name__)
 
+# The Bot API rejects messages over 4096 UTF-16 code units; leave room for
+# the alert header.
+MAX_CHUNK_UNITS = 3500
+MAX_RETRY_DELAY = 60
+
+def _utf16_len(text):
+    return len(text.encode('utf-16-le')) // 2
+
+def split_text(text, max_units=MAX_CHUNK_UNITS):
+    # Split into pieces the Bot API accepts, without dropping a character.
+    chunks, current, units = [], [], 0
+    for char in text:
+        char_units = _utf16_len(char)
+        if current and units + char_units > max_units:
+            chunks.append(''.join(current))
+            current, units = [], 0
+        current.append(char)
+        units += char_units
+    chunks.append(''.join(current))
+    return chunks
+
 class TelegramMonitorBot:
-    def __init__(self, session_name='sesion_monitor'):
+    def __init__(self, session_name=None):
+        if session_name is None:
+            session_name = session_path()
         self.api_id, self.api_hash, self.bot_token = load_env()
         if not self.api_id or not self.api_hash:
             raise ValueError("API credentials missing in .env")
@@ -22,6 +47,9 @@ class TelegramMonitorBot:
         self.max_notifications = 3
         self.time_window = 60
         self.notification_timestamps = deque()
+        # Injectable so tests can drive the clock
+        self._now = time.time
+        self._sleep = asyncio.sleep
         self.my_user_id = None
         self.is_running = False
 
@@ -29,24 +57,71 @@ class TelegramMonitorBot:
         lang = self.state.get('language', 'en')
         return t_func(lang, key, **kwargs)
 
+    def build_alerts(self, chat_title, text):
+        # Channel text is arbitrary; escape it so a stray '<' or '&' cannot make
+        # the Bot API reject the alert. Long posts become several messages.
+        chunks = split_text(text)
+        if len(chunks) == 1:
+            return [self.t('alert', chat_title=html.escape(chat_title), text=html.escape(text))]
+        total = len(chunks)
+        return [
+            self.t('alert', chat_title=html.escape(f"{chat_title} ({i}/{total})"), text=html.escape(chunk))
+            for i, chunk in enumerate(chunks, start=1)
+        ]
+
+    async def wait_for_notification_slot(self):
+        # Anti-spam: at most max_notifications per time_window. Alerts over
+        # the limit wait for a free slot instead of being dropped.
+        while True:
+            now = self._now()
+            while self.notification_timestamps and now - self.notification_timestamps[0] >= self.time_window:
+                self.notification_timestamps.popleft()
+            if len(self.notification_timestamps) < self.max_notifications:
+                self.notification_timestamps.append(now)
+                return
+            wait = self.time_window - (now - self.notification_timestamps[0])
+            logger.info(f"Rate limit reached. Alert queued for {wait:.0f}s.")
+            await self._sleep(wait)
+
     async def send_bot_alert(self, message):
         if not self.bot_token or not self.my_user_id:
             logger.error("Cannot send bot alert: missing BOT_TOKEN or MY_USER_ID")
-            return
+            return False
             
         url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
         payload = {
             "chat_id": self.my_user_id,
             "text": message,
-            "parse_mode": "Markdown"
+            "parse_mode": "HTML"
         }
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload) as response:
-                    if response.status != 200:
-                        logger.error(f"Failed to send bot alert: {await response.text()}")
-        except Exception as e:
-            logger.error(f"Error sending bot alert: {e}")
+        # Temporary failures (rate limiting, server errors, network) are retried
+        # until the alert gets through; only a request Telegram rejects outright
+        # is given up on, since resending it cannot succeed.
+        delay = 1
+        while True:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, json=payload) as response:
+                        if response.status == 200:
+                            return True
+                        body = await response.text()
+                        if response.status == 429:
+                            try:
+                                wait = json.loads(body)['parameters']['retry_after']
+                            except (ValueError, KeyError, TypeError):
+                                wait = delay
+                        elif response.status >= 500:
+                            wait = delay
+                        else:
+                            logger.error(f"Failed to send bot alert: {body}")
+                            return False
+                        reason = f"HTTP {response.status}"
+            except Exception as e:
+                wait = delay
+                reason = repr(e)
+            logger.warning(f"Bot alert not delivered ({reason}); retrying in {wait}s")
+            await self._sleep(wait)
+            delay = min(delay * 2, MAX_RETRY_DELAY)
 
     def setup_handlers(self):
         @self.client.on(events.NewMessage(chats='me'))
@@ -177,25 +252,19 @@ class TelegramMonitorBot:
             match_found = any(keyword in text_lower for keyword in self.state['keywords'])
             
             if match_found:
-                current_time = time.time()
-                
-                while self.notification_timestamps and current_time - self.notification_timestamps[0] > self.time_window:
-                    self.notification_timestamps.popleft()
-                    
-                if len(self.notification_timestamps) < self.max_notifications:
-                    self.notification_timestamps.append(current_time)
-                    try:
-                        chat_title = getattr(chat, 'title', str(chat.id))
-                        if chat_username:
-                            chat_title = f"@{chat_username}"
-                        
-                        message = self.t('alert', chat_title=chat_title, text=event.raw_text)
-                        await self.send_bot_alert(message)
+                await self.wait_for_notification_slot()
+                try:
+                    chat_title = getattr(chat, 'title', str(chat.id))
+                    if chat_username:
+                        chat_title = f"@{chat_username}"
+
+                    delivered = True
+                    for message in self.build_alerts(chat_title, event.raw_text):
+                        delivered = await self.send_bot_alert(message) and delivered
+                    if delivered:
                         logger.info(f"Alert sent for channel {chat_title}")
-                    except Exception as e:
-                        logger.error(f"Error sending alert: {e}")
-                else:
-                    logger.warning("Rate limit reached. Silently dropping alert.")
+                except Exception as e:
+                    logger.error(f"Error sending alert: {e}")
 
     async def start(self):
         logger.info("Starting monitor bot...")
