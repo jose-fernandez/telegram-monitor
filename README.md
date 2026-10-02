@@ -88,4 +88,4 @@ All configuration is automatically saved in `config.json` and will persist acros
 
 ## Privacy and Git
 
-The `.gitignore` file is already configured to prevent you from accidentally uploading credentials. Files like `.env`, `config.json`, and session files `*.session` will be ignored by Git.
+The `.gitignore` file is already configured to prevent you from accidentally uploading credentials. Files like `.env`, `config.json`, session files `*.session` and the `data/` directory will be ignored by Git.
